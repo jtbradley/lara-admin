@@ -10,6 +10,9 @@ window.Vue = require('vue');
 import moment from 'moment';
 import { Form, HasError, AlertError } from 'vform';
 
+import Gate from "./Gate";
+Vue.prototype.$gate = new Gate(window.user);
+
 Vue.component(HasError.name, HasError)
 Vue.component(AlertError.name, AlertError)
 
@@ -28,6 +31,7 @@ const Toast = Swal.mixin({
 
   window.toast = Toast;
 
+Vue.component('pagination', require('laravel-vue-pagination'));
 
 import VueProgressBar from 'vue-progressbar'
 Vue.use(VueProgressBar, {
@@ -41,8 +45,10 @@ Vue.use(VueRouter)
 
 const routes = [
     { path: '/dashboard', component: require('./components/Dashboard.vue').default },
+    { path: '/developer', component: require('./components/Developer.vue').default },
     { path: '/profile', component: require('./components/Profile.vue').default },
-    { path: '/users', component: require('./components/Users.vue').default }
+    { path: '/users', component: require('./components/Users.vue').default },
+    { path: '*', component: require('./components/NotFound.vue').default }
   ]
 
   const router = new VueRouter({
@@ -72,6 +78,26 @@ window.Fire = Fire;
 // const files = require.context('./', true, /\.vue$/i)
 // files.keys().map(key => Vue.component(key.split('/').pop().split('.')[0], files(key).default))
 
+Vue.component(
+    'passport-clients',
+    require('./components/passport/Clients.vue').default
+);
+
+Vue.component(
+    'passport-authorized-clients',
+    require('./components/passport/AuthorizedClients.vue').default
+);
+
+Vue.component(
+    'passport-personal-access-tokens',
+    require('./components/passport/PersonalAccessTokens.vue').default
+);
+
+Vue.component(
+    'not-found',
+    require('./components/NotFound.vue').default
+);
+
 Vue.component('example-component', require('./components/ExampleComponent.vue').default);
 
 /**
@@ -82,5 +108,14 @@ Vue.component('example-component', require('./components/ExampleComponent.vue').
 
 const app = new Vue({
     el: '#app',
-    router
+    router,
+    data: {
+        search: ''
+    },
+    methods:{
+        // lodash debounce
+        searchIt: _.debounce(() => {
+            Fire.$emit('searching');
+        }, 1000)
+    }
 });

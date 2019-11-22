@@ -1,6 +1,6 @@
 <template>
     <div class="container">
-        <div class="row mt-5">
+        <div class="row mt-5" v-if="$gate.isAdminOrAuthor()">
           <div class="col-md-12">
             <div class="card">
               <div class="card-header">
@@ -24,7 +24,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="user in users" :key="user.id">
+                    <tr v-for="user in users.data" :key="user.id">
                       <td>{{ user.id }}</td>
                       <td>{{ user.name }}</td>
                       <td>{{ user.email }}</td>
@@ -39,9 +39,16 @@
                 </table>
               </div>
               <!-- /.card-body -->
+              <div class="card-footer">
+                  <pagination :data="users" @pagination-change-page="getResults"></pagination>
+              </div>
             </div>
             <!-- /.card -->
           </div>
+
+        <div v-if="!$gate.isAdminOrAuthor()">
+            <not-found></not-found>
+        </div>
 
         <!-- Modal -->
 <div class="modal fade" id="addNew" tabindex="-1" role="dialog" aria-labelledby="addNewLabel" aria-hidden="true">
@@ -78,7 +85,7 @@
                 <select name="type" v-model="form.type" id="type" class="form-control" :class="{ 'is-invalid': form.errors.has('type') }">
                 <option value="" disabled selected >Select User Role</option>
                 <option value="admin">Admin</option>
-                <option value="standard">Standard</option>
+                <option value="user">Standard</option>
                 <option value="author">Author</option>
                 </select>
                 <has-error :form="form" field="type"></has-error>
@@ -129,9 +136,18 @@
               this.form.reset();
               $('#addNew').modal('show');
             },
+            getResults(page = 1) {
+			axios.get('api/user?page=' + page)
+				.then(response => {
+					this.users = response.data;
+				});
+		    },
             updateUser(id){
-              //console.log('Ediing data')
+              //console.log('Editing data')
               this.$Progress.start();
+              if(this.form.password == ""){
+                this.form.password = undefined;
+            }
               this.form.put('api/user/' + this.form.id)
               .then(() => {
                 // successful
@@ -156,7 +172,9 @@
             },
             // Remember to do then and catch for all HTTP requests before pushing to prod
             loadUsers(){
-                axios.get("api/user").then(({data}) => (this.users = data.data));
+                if (this.$gate.isAdminOrAuthor()){
+                axios.get("api/user").then(({data}) => (this.users = data));
+                }
             },
             createUser(){
                 // Submit the form via a POST request
@@ -209,6 +227,16 @@
             this.loadUsers();
             Fire.$on('AfterCreate',() =>{
                 this.loadUsers();
+            });
+            Fire.$on('searching', () => {
+                let query = this.$parent.search;
+                axios.get('api/findUser?q=' + query)
+                .then((data) => {
+                    this.users = data.data
+                })
+                .catch(() => {
+
+                })
             });
           //  setInterval(() => this.loadUsers(), 3000);
         }
